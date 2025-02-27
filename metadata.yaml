@@ -1,0 +1,6 @@
+name: astrbot_ggac_messenger
+desc: anka - 让ai自动推送ggac推荐
+help: anka - 让ai自动推送ggac推荐
+version: v0.1
+author: anka
+repo: https://github.com/anka-afk/astrbot_plugin_ggac_messenger

@@ -1,0 +1,14 @@
+{
+  "target_groups": {
+    "description": "需要推送更新的群组ID列表",
+    "type": "list",
+    "hint": "填写需要接收GGAC更新推送的群号，如: [123456, 789012]",
+    "default": []
+  },
+  "check_interval": {
+    "description": "检查更新的时间间隔(秒)",
+    "type": "int",
+    "hint": "多久检查一次更新，建议300-600秒",
+    "default": 300
+  }
+}
