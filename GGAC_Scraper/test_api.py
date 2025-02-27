@@ -1,5 +1,5 @@
 import asyncio
-from ggac_api import GGACAPI
+from GGAC_Scraper.ggac_api import GGACAPI
 
 api = GGACAPI()
 
