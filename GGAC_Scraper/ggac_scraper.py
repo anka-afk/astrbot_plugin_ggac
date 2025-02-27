@@ -132,250 +132,36 @@ class ArticleItem:
 
 @dataclass
 class BaseScraper:
-    """基础爬虫类
-    ================================================
-    api构造:
-    精选页面:
-    https://www.ggac.com/api/work/list?pageNumber={self.pageNumber}&pageSize={self.pageSize}&isPublic=1&isRecommend=1&sortField={self.sortField}
-    全部页面:
-    https://www.ggac.com/api/work/list?pageNumber=1&pageSize=48&isPublic=1&sortField=lastSubmitTime
-    游戏页面:
-    https://www.ggac.com/api/work/list?pageNumber=1&pageSize=48&isPublic=1&categoryId=1&sortField=recommendUpdateTime
-    影视页面:
-    https://www.ggac.com/api/work/list?pageNumber=1&pageSize=48&isPublic=1&categoryId=3&sortField=recommendUpdateTime
-    动画漫画页面:
-    https://www.ggac.com/api/work/list?pageNumber=1&pageSize=48&isPublic=1&categoryId=5&sortField=recommendUpdateTime
-    二次元页面:
-    https://www.ggac.com/api/work/list?pageNumber=1&pageSize=48&isPublic=1&categoryId=2&sortField=recommendUpdateTime
-    文创,潮流,艺术页面:
-    https://www.ggac.com/api/work/list?pageNumber=1&pageSize=48&isPublic=1&categoryId=4&sortField=recommendUpdateTime
-    文章页面:
-    https://www.ggac.com/api/global_search/post?pageSize=48&pageNumber=1&dataTable=article&sortField=recommendUpdateTime
-    其他页面:
-    https://www.ggac.com/api/work/list?pageNumber=1&pageSize=48&isPublic=1&categoryId=17&sortField=recommendUpdateTime
-    ================================================
-    创作类型:
-    参考:
-    https://www.ggac.com/api/work/list?pageNumber=1&pageSize=48&isPublic=1&sortField=recommendUpdateTime&isRecommend=1&mediaCategory=1
-    mediaCategory字段:
-    1.2D原画
-    2.3D模型
-    4.UI设计
-    5.ANI动画
-    6.其他
-    7.VFX特效
-    ================================================
-
-    请求返回示例:
-    例如get精选页面:https://www.ggac.com/api/work/list?pageNumber=1&pageSize=2&isPublic=1&isRecommend=1&sortField=recommendUpdateTime
-    返回值:
-    {
-    "code": "0",
-    "message": "成功",
-    "data": {
-        "pageNumber": 1,
-        "pageSize": 2,
-        "totalPage": 38026,
-        "totalSize": 76052,
-        "currentSize": 2,
-        "pageData": [
-        {
-            "viewCount": 129,
-            "hot": 6700,
-            "onRanking": 0,
-            "hotLevel": 0,
-            "recommendLevel": 1,
-            "id": 1770552,
-            "title": "暗黑舞者",
-            "userId": 822649,
-            "coverUrl": "https://cdn-prd.ggac.com/ggac/work/cover/2025/2/17/df0eece8-d814-4e7e-8fea-0894fe18c885-900x.jpg",
-            "originalCoverUrl": "https://cdn-prd.ggac.com/ggac/work/cover/2025/2/17/df0eece8-d814-4e7e-8fea-0894fe18c885-900x.jpg",
-            "publishType": null,
-            "isContest": 0,
-            "mediaCategory": 1,
-            "isDraft": 0,
-            "twinId": 1770551,
-            "isPublic": 1,
-            "onSale": 1,
-            "status": 2,
-            "refuseReason": null,
-            "offSaleReason": null,
-            "createTime": "2025-02-17 11:37:25",
-            "updateTime": "2025-02-26 17:15:18",
-            "submitTime": "2025-02-17 11:37:21",
-            "publishTime": "2025-02-17 11:37:25",
-            "lastSubmitTime": "2025-02-26 17:15:15",
-            "lastPublishTime": "2025-02-26 17:15:18",
-            "dictMap": {
-            "mediaCategory": "2D原画",
-            "theme": null,
-            "themeA": null,
-            "team": null
-            },
-            "userInfo": {
-            "id": 822649,
-            "username": "阿蓝是有猫人士",
-            "avatarUrl": "https://cdn-prd.ggac.com/ggac/user/detail/url/xcTXcxhktHzPFsm7MRrfZECxZsCtYPtG1739345587903-500x.jpg",
-            "profession": null,
-            "certifiedRoleId": null
-            },
-            "categoryList": [
-            {
-                "id": 1,
-                "level": 1,
-                "name": "游戏",
-                "code": "youxi",
-                "dataId": 1770552
-            },
-            {
-                "id": 6,
-                "level": 2,
-                "name": "游戏美宣",
-                "code": "yxmx",
-                "dataId": 1770552
-            }
-            ],
-            "prizeList": [],
-            "recommendJudgeInfos": [],
-            "contest": null,
-            "mediaTypeList": [1, 10],
-            "creatorCount": 0
-        },
-        {
-            "viewCount": 7,
-            "hot": 350,
-            "onRanking": 0,
-            "hotLevel": 0,
-            "recommendLevel": 1,
-            "id": 1773331,
-            "title": "寡妇商人",
-            "userId": 822649,
-            "coverUrl": "https://cdn-prd.ggac.com/ggac/work/cover/2025/2/26/5d2b0226-d04e-4cec-805f-0896404e7ddd-900x.jpg",
-            "originalCoverUrl": "https://cdn-prd.ggac.com/ggac/work/cover/2025/2/26/5d2b0226-d04e-4cec-805f-0896404e7ddd.png",
-            "publishType": null,
-            "isContest": 0,
-            "mediaCategory": 1,
-            "isDraft": 0,
-            "twinId": 1773330,
-            "isPublic": 1,
-            "onSale": 1,
-            "status": 2,
-            "refuseReason": null,
-            "offSaleReason": null,
-            "createTime": "2025-02-26 17:18:34",
-            "updateTime": "2025-02-26 17:30:47",
-            "submitTime": "2025-02-26 17:18:29",
-            "publishTime": "2025-02-26 17:18:34",
-            "lastSubmitTime": "2025-02-26 17:18:29",
-            "lastPublishTime": "2025-02-26 17:18:34",
-            "dictMap": {
-            "mediaCategory": "2D原画",
-            "theme": null,
-            "themeA": null,
-            "team": null
-            },
-            "userInfo": {
-            "id": 822649,
-            "username": "阿蓝是有猫人士",
-            "avatarUrl": "https://cdn-prd.ggac.com/ggac/user/detail/url/xcTXcxhktHzPFsm7MRrfZECxZsCtYPtG1739345587903-500x.jpg",
-            "profession": null,
-            "certifiedRoleId": null
-            },
-            "categoryList": [
-            {
-                "id": 1,
-                "level": 1,
-                "name": "游戏",
-                "code": "youxi",
-                "dataId": 1773331
-            },
-            {
-                "id": 6,
-                "level": 2,
-                "name": "游戏美宣",
-                "code": "yxmx",
-                "dataId": 1773331
-            }
-            ],
-            "prizeList": [],
-            "recommendJudgeInfos": [],
-            "contest": null,
-            "mediaTypeList": [1, 10],
-            "creatorCount": 0
-        }
-        ]
-    },
-    "reqId": "4c18bebcd3cf4a8aa4c9474654e4cbd3",
-    "reqTime": "2025-02-26 17:57:26"
-    }
-    """
+    """基础爬虫类"""
 
     pageNumber: int = 1
     pageSize: int = 48
     sort_field: SortField = SortField.RECOMMENDED
     media_category: Optional[MediaCategory] = None
-    headers: dict = None
     base_url: str = "https://www.ggac.com/api"
-    cookies: dict = None
     max_retries: int = 3
     retry_delay: float = 1.0
 
-    def __post_init__(self):
-        """初始化请求头"""
-        self.headers = {
-            "Accept": "application/json, text/plain, */*",
-            "Accept-Encoding": "gzip, deflate, br, zstd",
-            "Accept-Language": "zh-hans",
-            "Connection": "keep-alive",
-            "Host": "www.ggac.com",
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-origin",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36 Edg/133.0.0.0",
-            "authType": "1",
-            "platform": "1",
-            "sec-ch-ua": '"Not(A:Brand";v="99", "Microsoft Edge";v="133", "Chromium";v="133"',
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": '"Windows"',
-        }
-        self.cookies = {
-            "__qc_wId": "864",
-            "Hm_lvt_cdb0ed4fefe7f3d410e93c160b2eac6c": "1740387403,1740498141,1740540473,1740562340",
-            "HMACCOUNT": "A5AF46EA95DB060D",
-            "Hm_lpvt_cdb0ed4fefe7f3d410e93c160b2eac6c": "1740570486",
-        }
-
-    def _get_referer(self, category: Optional[CategoryType] = None) -> str:
-        """根据不同分类生成对应的 Referer"""
-        if category:
-            return f"https://www.ggac.com/explore?categoryPid={category}&pageNumber={self.pageNumber}&sortField={self.sort_field}"
-        return f"https://www.ggac.com/explore?pageNumber={self.pageNumber}&sortField={self.sort_field}"
-
-    async def fetch_with_retry(self, url: str, headers: dict) -> dict:
+    async def fetch_with_retry(self, url: str) -> dict:
         """带重试的请求方法"""
-        for attempt in range(self.max_retries):
-            try:
-                async with aiohttp.ClientSession(cookies=self.cookies) as session:
-                    async with session.get(url, headers=headers) as response:
+        async with aiohttp.ClientSession() as session:
+            for attempt in range(self.max_retries):
+                try:
+                    async with session.get(url, ssl=False) as response:
                         if response.status == 200:
                             return await response.json()
                         raise RequestError(
                             f"HTTP {response.status}: {await response.text()}"
                         )
-            except Exception as e:
-                if attempt == self.max_retries - 1:
-                    raise
-                await asyncio.sleep(self.retry_delay * (attempt + 1))
+                except Exception as e:
+                    if attempt == self.max_retries - 1:
+                        raise
+                    await asyncio.sleep(self.retry_delay * (attempt + 1))
 
     async def fetch_data(self) -> dict:
+        """获取数据"""
         url = self._build_url()
-        headers = self.headers.copy()
-        if isinstance(self, CategoryScraper):
-            headers["Referer"] = self._get_referer(self.category)
-        else:
-            headers["Referer"] = self._get_referer()
-
-        return await self.fetch_with_retry(url, headers)
+        return await self.fetch_with_retry(url)
 
     def _build_url(self) -> str:
         """构建基础URL"""
@@ -422,7 +208,6 @@ class FeaturedScraper(BaseScraper):
         url = f"{self.base_url}/work/list?pageNumber={self.pageNumber}&pageSize={self.pageSize}&isPublic=1&isRecommend=1&sortField={self.sort_field}"
         if self.media_category:
             url += f"&mediaCategory={self.media_category}"
-        print(url)
         return url
 
 

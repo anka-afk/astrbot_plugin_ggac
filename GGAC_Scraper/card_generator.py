@@ -1,3 +1,4 @@
+import os
 from typing import List, Tuple
 from pathlib import Path
 import asyncio
@@ -6,6 +7,7 @@ from datetime import datetime
 import aiohttp
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from .ggac_scraper import WorkItem
+from ..config import FONTS_DIR
 
 
 class CardGenerator:
@@ -14,13 +16,18 @@ class CardGenerator:
     def __init__(
         self,
         output_dir: str = "cards",
-        font_path: str = "fonts/微软雅黑.ttf",
+        font_path: str = FONTS_DIR,
         card_width: int = 800,
         card_padding: int = 25,
         corner_radius: int = 15,
     ):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
+
+        # 确保字体文件存在
+        if not os.path.exists(font_path):
+            raise FileNotFoundError(f"找不到字体文件: {font_path}")
+
         self.font_path = font_path
         self.card_width = card_width
         self.padding = card_padding
@@ -41,10 +48,13 @@ class CardGenerator:
         self.subtitle_size = 26
         self.text_size = 22
 
-        # 加载字体
-        self.title_font = ImageFont.truetype(font_path, self.title_size)
-        self.subtitle_font = ImageFont.truetype(font_path, self.subtitle_size)
-        self.text_font = ImageFont.truetype(font_path, self.text_size)
+        try:
+            # 加载字体
+            self.title_font = ImageFont.truetype(str(font_path), self.title_size)
+            self.subtitle_font = ImageFont.truetype(str(font_path), self.subtitle_size)
+            self.text_font = ImageFont.truetype(str(font_path), self.text_size)
+        except Exception as e:
+            raise Exception(f"加载字体文件失败: {e}")
 
     def _get_text_size(
         self, text: str, font: ImageFont.FreeTypeFont

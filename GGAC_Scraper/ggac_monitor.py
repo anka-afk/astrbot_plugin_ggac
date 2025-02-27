@@ -14,12 +14,8 @@ class GGACMonitor:
     def __init__(self, cache_dir: str = "cache", cards_dir: str = "cards"):
         self.api = GGACAPI()
         self.card_generator = CardGenerator(output_dir=cards_dir)
-
-        # 创建缓存目录
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(exist_ok=True)
-
-        # 缓存文件路径
         self.cache_files = {
             "2d": self.cache_dir / "featured_2d.json",
             "3d": self.cache_dir / "featured_3d.json",
@@ -68,49 +64,80 @@ class GGACMonitor:
     ) -> List[WorkItem]:
         """查找更新的作品"""
         cached_ids = {item["id"] for item in cached_data}
-        return [work for work in new_works if work.id not in cached_ids]
+        updates = [work for work in new_works if work.id not in cached_ids]
+        if updates:
+            print(f"找到 {len(updates)} 个更新")
+            for work in updates:
+                print(f"新作品: {work.id} - {work.title}")
+        return updates
 
     async def _process_updates(self, updates: List[WorkItem]) -> List[Dict[str, str]]:
         """处理更新的作品，生成卡片"""
         results = []
         for work in updates:
-            card_path, work_url = await self.card_generator.generate_card(work)
-            results.append(
-                {"image_path": str(Path(card_path).absolute()), "url": work_url}
-            )
+            try:
+                card_path, work_url = await self.card_generator.generate_card(work)
+                results.append(
+                    {
+                        "image_path": str(Path(card_path).absolute()),
+                        "url": work_url,
+                        "title": work.title,  # 添加更多信息用于调试
+                        "id": work.id,
+                    }
+                )
+            except Exception as e:
+                print(f"处理作品 {work.id} 时出错: {e}")
+                continue
         return results
 
     async def check_updates(self) -> Dict[str, List[Dict[str, str]]]:
         """检查更新"""
         results = {"2d": [], "3d": []}
+        try:
+            # 检查2D原画更新
+            works_2d = await self.api.get_works(
+                category="featured", media_type="2d", sort_by="recommended"
+            )
+            print(f"获取到 {len(works_2d)} 个2D作品")
 
-        # 检查2D原画更新
-        works_2d = await self.api.get_works(
-            category="featured", media_type="2d", sort_by="recommended"
-        )
-        cached_2d = self._load_cache(self.cache_files["2d"])
+            cached_2d = self._load_cache(self.cache_files["2d"])
+            print(f"已缓存 {len(cached_2d)} 个2D作品")
 
-        if not cached_2d:  # 首次运行
-            self._save_cache(self.cache_files["2d"], works_2d)
-        else:
-            updates_2d = self._find_updates(works_2d, cached_2d)
-            if updates_2d:
-                results["2d"] = await self._process_updates(updates_2d)
+            if not cached_2d:  # 首次运行
+                print("首次运行，创建2D缓存")
                 self._save_cache(self.cache_files["2d"], works_2d)
+            else:
+                updates_2d = self._find_updates(works_2d, cached_2d)
+                if updates_2d:
+                    print(f"处理 {len(updates_2d)} 个2D更新")
+                    results["2d"] = await self._process_updates(updates_2d)
+                    self._save_cache(self.cache_files["2d"], works_2d)
 
-        # 检查3D模型更新
-        works_3d = await self.api.get_works(
-            category="featured", media_type="3d", sort_by="recommended"
-        )
-        cached_3d = self._load_cache(self.cache_files["3d"])
+            # 检查3D模型更新
+            works_3d = await self.api.get_works(
+                category="featured", media_type="3d", sort_by="recommended"
+            )
+            print(f"获取到 {len(works_3d)} 个3D作品")
 
-        if not cached_3d:  # 首次运行
-            self._save_cache(self.cache_files["3d"], works_3d)
-        else:
-            updates_3d = self._find_updates(works_3d, cached_3d)
-            if updates_3d:
-                results["3d"] = await self._process_updates(updates_3d)
+            cached_3d = self._load_cache(self.cache_files["3d"])
+            print(f"已缓存 {len(cached_3d)} 个3D作品")
+
+            if not cached_3d:  # 首次运行
+                print("首次运行，创建3D缓存")
                 self._save_cache(self.cache_files["3d"], works_3d)
+            else:
+                updates_3d = self._find_updates(works_3d, cached_3d)
+                if updates_3d:
+                    print(f"处理 {len(updates_3d)} 个3D更新")
+                    results["3d"] = await self._process_updates(updates_3d)
+                    self._save_cache(self.cache_files["3d"], works_3d)
+
+        except Exception as e:
+            print(f"检查更新时出错: {e}")
+            import traceback
+
+            traceback.print_exc()
+            raise
 
         return results
 
