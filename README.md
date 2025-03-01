@@ -6,8 +6,8 @@
 ![Python Version](https://img.shields.io/badge/Python-3.10.14%2B-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)
 [![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen)](CONTRIBUTING.md)
-[![Contributors](https://img.shields.io/github/contributors/anka-afk/astrbot_plugin_ggac_messenger?color=green)](https://github.com/anka-afk/astrbot_plugin_ggac_messenger/graphs/contributors)
-[![Last Commit](https://img.shields.io/github/last-commit/anka-afk/astrbot_plugin_ggac_messenger)](https://github.com/anka-afk/astrbot_plugin_ggac_messenger/commits/main)
+[![Contributors](https://img.shields.io/github/contributors/anka-afk/astrbot_plugin_ggac_messenger?color=green)](https://github.com/anka-afk/astrbot_plugin_ggac/graphs/contributors)
+[![Last Commit](https://img.shields.io/github/last-commit/anka-afk/astrbot_plugin_ggac_messenger)](https://github.com/anka-afk/astrbot_plugin/commits/main)
 
 </div>
 
