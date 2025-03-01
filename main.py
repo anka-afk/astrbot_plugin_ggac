@@ -11,7 +11,7 @@ from .GGAC_Scraper.ggac_monitor import GGACMonitor
 from .config import CACHE_DIR, CARDS_DIR
 
 
-@register("ggac_messenger", "anka", "GGAC作品更新推送插件", "1.0.0")
+@register("astrbot_plugin_GGAC_Messenger", "anka", "anka - GGAC 作品更新推送插件 - 自动监控并推送 GGAC 平台精选作品的更新! 附赠一套 GGAC 网站完整 api! 还有随机抽取 GGAC 内容功能, 详情见github页面!", "1.0.0")
 class GGACPlugin(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
