@@ -17,14 +17,13 @@ class CardGenerator:
         self,
         output_dir: str = "cards",
         font_path: str = FONTS_DIR,
-        card_width: int = 800,
-        card_padding: int = 25,
-        corner_radius: int = 15,
+        card_width: int = 1000,
+        card_padding: int = 30,
+        corner_radius: int = 20,
     ):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
 
-        # 确保字体文件存在
         if not os.path.exists(font_path):
             raise FileNotFoundError(f"找不到字体文件: {font_path}")
 
@@ -36,17 +35,17 @@ class CardGenerator:
         # 颜色配置
         self.colors = {
             "background": "#FFFFFF",
-            "title": "#1A1A1A",
-            "subtitle": "#4A4A4A",
-            "text": "#666666",
-            "divider": "#EEEEEE",
-            "shadow": "#00000033",
+            "title": "#2C3E50",
+            "subtitle": "#34495E",
+            "text": "#7F8C8D",
+            "divider": "#ECF0F1",
+            "shadow": "#00000022",
         }
 
         # 字体大小配置
-        self.title_size = 36
-        self.subtitle_size = 26
-        self.text_size = 22
+        self.title_size = 42
+        self.subtitle_size = 28
+        self.text_size = 24
 
         try:
             # 加载字体
@@ -100,7 +99,7 @@ class CardGenerator:
         """创建文本块并返回下一个y坐标"""
         lines = self._wrap_text(text, font, self.card_width - 2 * self.padding)
         _, line_height = self._get_text_size("A", font)
-        line_spacing = 5
+        line_spacing = 8
 
         for line in lines:
             if align == "center":
@@ -211,15 +210,17 @@ class CardGenerator:
         draw = ImageDraw.Draw(card)
 
         # 开始绘制文本
-        y = self.padding + cover_height + self.padding * 1.5
+        y = self.padding + cover_height + self.padding * 2
 
         # 标题
         y = self._create_text_block(
             draw, work.title, self.title_font, y, self.colors["title"], "center"
         )
+        y += self.padding
 
         # 分隔线
         y = self._draw_divider(draw, y, self.card_width, self.colors["divider"])
+        y += self.padding * 0.5
 
         # 作者和创作类型
         author_text = f"作者: {work.username} | 类型: {work.media_category}"
@@ -253,7 +254,7 @@ class CardGenerator:
         card.save(card_path, "PNG", quality=95)
 
         # 生成作品链接
-        work_url = f"https://www.ggac.com/v/work/{work.id}"
+        work_url = f"https://www.ggac.com/work/detail/{work.id}"
 
         return str(card_path), work_url
 
@@ -265,3 +266,46 @@ class CardGenerator:
         """
         tasks = [self.generate_card(work) for work in works]
         return await asyncio.gather(*tasks)
+
+
+if __name__ == "__main__":
+    import asyncio
+    from datetime import datetime
+    from dataclasses import dataclass
+
+    @dataclass
+    class Category:
+        name: str
+
+    @dataclass
+    class TestWorkItem:
+        id: int
+        title: str
+        username: str
+        media_category: str
+        categories: list
+        view_count: int
+        hot: int
+        create_time: datetime
+        cover_url: str
+
+    async def main():
+        test_work = TestWorkItem(
+            id=12345,
+            title="测试作品标题 - 一个非常精彩的创作",
+            username="创作者小明",
+            media_category="插画",
+            categories=[Category("二次元"), Category("原创"), Category("风景")],
+            view_count=12345,
+            hot=678,
+            create_time=datetime.now(),
+            cover_url="https://via.placeholder.com/800x600/000000/FFFFFF",
+        )
+
+        generator = CardGenerator(output_dir=".")
+
+        card_path, work_url = await generator.generate_card(test_work)
+        print(f"卡片已生成: {card_path}")
+        print(f"作品链接: {work_url}")
+
+    asyncio.run(main())

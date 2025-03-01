@@ -15,6 +15,9 @@ class SortField(str, Enum):
     LIKES = "likeCount"  # 点赞
     HOT = "threeDaysHot"  # 热度
 
+    def __str__(self):
+        return self.value
+
 
 class CategoryType(str, Enum):
     """分类类型枚举"""
@@ -75,11 +78,20 @@ class WorkItem:
     def from_dict(cls, data: dict) -> "WorkItem":
         """从API响应数据创建WorkItem实例"""
         work_id = data["id"]
+
+        try:
+            media_category = data["dictMap"]["mediaCategory"]
+        except (KeyError, TypeError):
+            media_category = "2D原画"
+            print(
+                f"Warning: Missing mediaCategory for work {work_id}, using default value"
+            )
+
         return cls(
             id=work_id,
             title=data["title"],
             cover_url=data["originalCoverUrl"],
-            media_category=data["dictMap"]["mediaCategory"],
+            media_category=media_category,
             username=data["userInfo"]["username"],
             categories=[
                 Category(
@@ -144,16 +156,24 @@ class BaseScraper:
 
     async def fetch_with_retry(self, url: str) -> dict:
         """带重试的请求方法"""
+        print(f"\n[DEBUG] Requesting URL: {url}")
+
         async with aiohttp.ClientSession() as session:
             for attempt in range(self.max_retries):
                 try:
                     async with session.get(url, ssl=False) as response:
                         if response.status == 200:
-                            return await response.json()
+                            data = await response.json()
+                            print(f"[DEBUG] Response status: {response.status}")
+                            print(
+                                f"[DEBUG] Response data preview: {str(data)[:200]}..."
+                            )
+                            return data
                         raise RequestError(
                             f"HTTP {response.status}: {await response.text()}"
                         )
                 except Exception as e:
+                    print(f"[DEBUG] Request attempt {attempt + 1} failed: {e}")
                     if attempt == self.max_retries - 1:
                         raise
                     await asyncio.sleep(self.retry_delay * (attempt + 1))
@@ -167,15 +187,22 @@ class BaseScraper:
         """构建基础URL"""
         url = f"{self.base_url}/work/list?pageNumber={self.pageNumber}&pageSize={self.pageSize}&isPublic=1"
         if self.media_category:
-            url += f"&mediaCategory={self.media_category}"
+            url += f"&mediaCategory={self.media_category.value}"
+        print(f"[DEBUG] Built URL: {url}")
         return url
 
     @staticmethod
     def parse_response(response: dict) -> List[dict]:
         """解析响应数据"""
+        print(f"[DEBUG] Response code: {response.get('code')}")
+        print(f"[DEBUG] Response message: {response.get('message')}")
+
         if response.get("code") != "0":
             raise Exception(f"请求失败: {response.get('message')}")
-        return response.get("data", {}).get("pageData", [])
+
+        page_data = response.get("data", {}).get("pageData", [])
+        print(f"[DEBUG] Found {len(page_data)} items in response")
+        return page_data
 
     async def get_works(self, page: int = 1, size: int = 48) -> List[WorkItem]:
         """获取作品列表"""
@@ -205,9 +232,17 @@ class FeaturedScraper(BaseScraper):
 
     def _build_url(self) -> str:
         """构建精选页面的URL"""
-        url = f"{self.base_url}/work/list?pageNumber={self.pageNumber}&pageSize={self.pageSize}&isPublic=1&isRecommend=1&sortField={self.sort_field}"
+        url = (
+            f"{self.base_url}/work/list"
+            f"?pageNumber={self.pageNumber}"
+            f"&pageSize={self.pageSize}"
+            f"&isPublic=1"
+            f"&isRecommend=1"
+            f"&sortField={str(self.sort_field)}"
+        )
         if self.media_category:
-            url += f"&mediaCategory={self.media_category}"
+            url += f"&mediaCategory={self.media_category.value}"
+        print(f"[DEBUG] Built Featured URL: {url}")
         return url
 
 
@@ -235,7 +270,7 @@ class CategoryScraper(BaseScraper):
         url = super()._build_url()
         if self.category != CategoryType.ALL:
             url += f"&categoryId={self.category}"
-        url += f"&sortField={self.sort_field}"
+        url += f"&sortField={str(self.sort_field)}"
         return url
 
 

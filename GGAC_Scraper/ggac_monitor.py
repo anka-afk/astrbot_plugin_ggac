@@ -31,7 +31,6 @@ class GGACMonitor:
 
     def _save_cache(self, cache_file: Path, works: List[WorkItem]):
         """保存缓存文件"""
-        # 将WorkItem对象转换为可序列化的字典
         cache_data = [
             {
                 "id": work.id,
@@ -81,7 +80,7 @@ class GGACMonitor:
                     {
                         "image_path": str(Path(card_path).absolute()),
                         "url": work_url,
-                        "title": work.title,  # 添加更多信息用于调试
+                        "title": work.title,
                         "id": work.id,
                     }
                 )
