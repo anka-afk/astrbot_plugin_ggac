@@ -8,7 +8,7 @@ from astrbot.api.message_components import Plain, Image
 from astrbot.api.event.filter import EventMessageType
 from typing import List, Dict
 from .GGAC_Scraper.ggac_monitor import GGACMonitor
-from .config import CACHE_DIR, CARDS_DIR, CATEGORY_MAP
+from .config import CACHE_DIR, CARDS_DIR, CATEGORY_MAP, load_settings
 
 
 @register(
@@ -21,14 +21,24 @@ class GGACPlugin(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
         self.config = config
-        # 获取配置, 注意需要转换
-        self.category = self.config.get("category", "精选")
-        self.media_type = self.config.get("media_type", "2D原画")
-        self.sort_by = self.config.get("sort_by", "推荐")
-        # 转换配置
-        self.category = CATEGORY_MAP[self.category]
-        self.media_type = CATEGORY_MAP[self.media_type]
-        self.sort_by = CATEGORY_MAP[self.sort_by]
+
+        # 加载推送设置
+        settings = load_settings()
+
+        # 构建推送设置字典
+        self.push_settings = {}
+        for category_name, settings in settings.items():
+            self.push_settings[category_name] = {
+                "category": CATEGORY_MAP.get(
+                    settings["category"], settings["category"]
+                ),
+                "media_type": CATEGORY_MAP.get(
+                    settings["media_type"], settings["media_type"]
+                ),
+                "sort_by": CATEGORY_MAP.get(
+                    settings.get("sort_by", "推荐"), "recommended"
+                ),
+            }
 
         self.monitor = GGACMonitor(cache_dir=CACHE_DIR, cards_dir=CARDS_DIR)
         asyncio.create_task(self.monitoring_task())
@@ -90,11 +100,7 @@ class GGACPlugin(Star):
 
         while True:
             try:
-                updates = await self.monitor.check_updates(
-                    category=self.category,
-                    media_type=self.media_type,
-                    sort_by=self.sort_by,
-                )
+                updates = await self.monitor.check_updates()
                 if any(updates.values()):
                     target_groups = self.config.get("target_groups", [])
                     if not target_groups:

@@ -16,10 +16,6 @@ class GGACMonitor:
         self.card_generator = CardGenerator(output_dir=cards_dir)
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(exist_ok=True)
-        self.cache_files = {
-            "2d": self.cache_dir / "featured_2d.json",
-            "3d": self.cache_dir / "featured_3d.json",
-        }
 
     def _load_cache(self, cache_file: Path) -> List[Dict]:
         """加载缓存文件"""
@@ -89,79 +85,55 @@ class GGACMonitor:
                 continue
         return results
 
+    def _get_cache_file(self, category_name: str) -> Path:
+        """获取缓存文件路径"""
+        return self.cache_dir / f"{category_name}.json"
+
     async def check_updates(
-        self,
-        category: str = "featured",
-        media_type: str = "2d",
-        sort_by: str = "recommended",
+        self, push_settings: dict
     ) -> Dict[str, List[Dict[str, str]]]:
-        """检查更新"""
-        results = {"2d": [], "3d": []}
+        """检查更新
+
+        Args:
+            push_settings: 推送设置字典，格式如:
+                {
+                    "精选2D": {
+                        "category": "featured",
+                        "media_type": "2d",
+                        "sort_by": "recommended"
+                    },
+                    "热门3D": {
+                        "category": "featured",
+                        "media_type": "3d",
+                        "sort_by": "hot"
+                    }
+                }
+        """
+        results = {}
         try:
-            # 检查2D原画更新
-            works_2d = await self.api.get_works(
-                category=category, media_type=media_type, sort_by=sort_by
-            )
-            # category: 分类名称，可选值：
-            #          - "featured": 精选
-            #          - "game": 游戏
-            #          - "anime": 二次元
-            #          - "movie": 影视
-            #          - "art": 文创
-            #          - "comic": 动画漫画
-            #          - "other": 其他
-            #          - "all": 全部
-            #          - None: 不指定分类
+            for category_name, settings in push_settings.items():
+                # 获取作品
+                works = await self.api.get_works(
+                    category=settings.get("category"),
+                    media_type=settings.get("media_type"),
+                    sort_by=settings.get("sort_by", "recommended"),
+                )
+                print(f"获取到 {len(works)} 个作品 (类别: {category_name})")
 
-            # media_type: 创作类型，可选值：
-            #            - "2d": 2D原画
-            #            - "3d": 3D模型
-            #            - "ui": UI设计
-            #            - "animation": 动画
-            #            - "vfx": 特效
-            #            - "other": 其他
-            #            - None: 不指定创作类型
+                # 获取缓存
+                cache_file = self._get_cache_file(category_name)
+                cached_data = self._load_cache(cache_file)
+                print(f"已缓存 {len(cached_data)} 个作品 (类别: {category_name})")
 
-            # sort_by: 排序方式，可选值：
-            #         - "latest": 最新
-            #         - "recommended": 推荐
-            #         - "views": 浏览量
-            #         - "likes": 点赞数
-            #         - "hot": 热度
-
-            print(f"获取到 {len(works_2d)} 个2D作品")
-
-            cached_2d = self._load_cache(self.cache_files["2d"])
-            print(f"已缓存 {len(cached_2d)} 个2D作品")
-
-            if not cached_2d:  # 首次运行
-                print("首次运行，创建2D缓存")
-                self._save_cache(self.cache_files["2d"], works_2d)
-            else:
-                updates_2d = self._find_updates(works_2d, cached_2d)
-                if updates_2d:
-                    print(f"处理 {len(updates_2d)} 个2D更新")
-                    results["2d"] = await self._process_updates(updates_2d)
-                    self._save_cache(self.cache_files["2d"], works_2d)
-
-            # 检查3D模型更新
-            works_3d = await self.api.get_works(
-                category="featured", media_type="3d", sort_by="recommended"
-            )
-            print(f"获取到 {len(works_3d)} 个3D作品")
-
-            cached_3d = self._load_cache(self.cache_files["3d"])
-            print(f"已缓存 {len(cached_3d)} 个3D作品")
-
-            if not cached_3d:  # 首次运行
-                print("首次运行，创建3D缓存")
-                self._save_cache(self.cache_files["3d"], works_3d)
-            else:
-                updates_3d = self._find_updates(works_3d, cached_3d)
-                if updates_3d:
-                    print(f"处理 {len(updates_3d)} 个3D更新")
-                    results["3d"] = await self._process_updates(updates_3d)
-                    self._save_cache(self.cache_files["3d"], works_3d)
+                if not cached_data:  # 首次运行
+                    print(f"首次运行，创建缓存 (类别: {category_name})")
+                    self._save_cache(cache_file, works)
+                else:
+                    updates = self._find_updates(works, cached_data)
+                    if updates:
+                        print(f"处理 {len(updates)} 个更新 (类别: {category_name})")
+                        results[category_name] = await self._process_updates(updates)
+                        self._save_cache(cache_file, works)
 
         except Exception as e:
             print(f"检查更新时出错: {e}")
@@ -172,11 +144,11 @@ class GGACMonitor:
 
         return results
 
-    async def start_monitoring(self, interval_seconds: int = 300):
+    async def start_monitoring(self, push_settings: dict, interval_seconds: int = 300):
         """开始定时监控"""
         while True:
             try:
-                updates = await self.check_updates()
+                updates = await self.check_updates(push_settings)
                 if any(updates.values()):
                     print(f"发现更新: {datetime.now()}")
                     for category, items in updates.items():
