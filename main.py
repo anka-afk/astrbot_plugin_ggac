@@ -8,14 +8,28 @@ from astrbot.api.message_components import Plain, Image
 from astrbot.api.event.filter import EventMessageType
 from typing import List, Dict
 from .GGAC_Scraper.ggac_monitor import GGACMonitor
-from .config import CACHE_DIR, CARDS_DIR
+from .config import CACHE_DIR, CARDS_DIR, CATEGORY_MAP
 
 
-@register("astrbot_plugin_GGAC_Messenger", "anka", "anka - GGAC 作品更新推送插件 - 自动监控并推送 GGAC 平台精选作品的更新! 附赠一套 GGAC 网站完整 api! 还有随机抽取 GGAC 内容功能, 详情见github页面!", "1.0.0")
+@register(
+    "astrbot_plugin_GGAC_Messenger",
+    "anka",
+    "anka - GGAC 作品更新推送插件 - 自动监控并推送 GGAC 平台精选作品的更新! 附赠一套 GGAC 网站完整 api! 还有随机抽取 GGAC 内容功能, 详情见github页面!",
+    "1.0.0",
+)
 class GGACPlugin(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
         self.config = config
+        # 获取配置, 注意需要转换
+        self.category = self.config.get("category", "精选")
+        self.media_type = self.config.get("media_type", "2D原画")
+        self.sort_by = self.config.get("sort_by", "推荐")
+        # 转换配置
+        self.category = CATEGORY_MAP[self.category]
+        self.media_type = CATEGORY_MAP[self.media_type]
+        self.sort_by = CATEGORY_MAP[self.sort_by]
+
         self.monitor = GGACMonitor(cache_dir=CACHE_DIR, cards_dir=CARDS_DIR)
         asyncio.create_task(self.monitoring_task())
 
@@ -76,7 +90,11 @@ class GGACPlugin(Star):
 
         while True:
             try:
-                updates = await self.monitor.check_updates()
+                updates = await self.monitor.check_updates(
+                    category=self.category,
+                    media_type=self.media_type,
+                    sort_by=self.sort_by,
+                )
                 if any(updates.values()):
                     target_groups = self.config.get("target_groups", [])
                     if not target_groups:

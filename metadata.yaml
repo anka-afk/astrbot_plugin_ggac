@@ -1,6 +1,6 @@
 name: astrbot_plugin_GGAC_Messenger
 desc: anka - GGAC 作品更新推送插件 - 自动监控并推送 GGAC 平台精选作品的更新! 附赠一套 GGAC 网站完整 api! 还有随机抽取 GGAC 内容功能, 详情见github页面!
 help: anka - GGAC 作品更新推送插件 - 自动监控并推送 GGAC 平台精选作品的更新! 附赠一套 GGAC 网站完整 api! 还有随机抽取 GGAC 内容功能, 详情见github页面!
-version: v1.0
+version: v1.1
 author: anka
 repo: https://github.com/anka-afk/astrbot_plugin_ggac_messenger

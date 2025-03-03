@@ -89,14 +89,46 @@ class GGACMonitor:
                 continue
         return results
 
-    async def check_updates(self) -> Dict[str, List[Dict[str, str]]]:
+    async def check_updates(
+        self,
+        category: str = "featured",
+        media_type: str = "2d",
+        sort_by: str = "recommended",
+    ) -> Dict[str, List[Dict[str, str]]]:
         """检查更新"""
         results = {"2d": [], "3d": []}
         try:
             # 检查2D原画更新
             works_2d = await self.api.get_works(
-                category="featured", media_type="2d", sort_by="recommended"
+                category=category, media_type=media_type, sort_by=sort_by
             )
+            # category: 分类名称，可选值：
+            #          - "featured": 精选
+            #          - "game": 游戏
+            #          - "anime": 二次元
+            #          - "movie": 影视
+            #          - "art": 文创
+            #          - "comic": 动画漫画
+            #          - "other": 其他
+            #          - "all": 全部
+            #          - None: 不指定分类
+
+            # media_type: 创作类型，可选值：
+            #            - "2d": 2D原画
+            #            - "3d": 3D模型
+            #            - "ui": UI设计
+            #            - "animation": 动画
+            #            - "vfx": 特效
+            #            - "other": 其他
+            #            - None: 不指定创作类型
+
+            # sort_by: 排序方式，可选值：
+            #         - "latest": 最新
+            #         - "recommended": 推荐
+            #         - "views": 浏览量
+            #         - "likes": 点赞数
+            #         - "hot": 热度
+
             print(f"获取到 {len(works_2d)} 个2D作品")
 
             cached_2d = self._load_cache(self.cache_files["2d"])
