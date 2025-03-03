@@ -100,7 +100,7 @@ class GGACPlugin(Star):
 
         while True:
             try:
-                updates = await self.monitor.check_updates()
+                updates = await self.monitor.check_updates(self.push_settings)
                 if any(updates.values()):
                     target_groups = self.config.get("target_groups", [])
                     if not target_groups:
