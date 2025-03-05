@@ -47,7 +47,7 @@ class GGACPlugin(Star):
     async def on_astrbot_loaded(self):
         if not hasattr(self, "client"):
             self.client = self.context.get_platform(
-                filter.PlatfromAdapterType.AIOCQHTTP
+                filter.PlatformAdapterType.AIOCQHTTP
             )
         return
 
