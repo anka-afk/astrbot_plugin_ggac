@@ -43,10 +43,12 @@ class GGACPlugin(Star):
         self.monitor = GGACMonitor(cache_dir=CACHE_DIR, cards_dir=CARDS_DIR)
         asyncio.create_task(self.monitoring_task())
 
-    @filter.event_message_type(EventMessageType.ALL)
-    async def get_client(self, event: AstrMessageEvent):
+    @filter.on_astrbot_loaded()
+    async def on_astrbot_loaded(self):
         if not hasattr(self, "client"):
-            self.client = event.bot
+            self.client = self.context.get_platform(
+                filter.PlatfromAdapterType.AIOCQHTTP
+            )
         return
 
     async def send_updates(

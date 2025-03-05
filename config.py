@@ -6,7 +6,7 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMP_DIR = os.path.join(CURRENT_DIR, os.pardir, os.pardir, "temp")
 CACHE_DIR = os.path.join(CURRENT_DIR, os.pardir, os.pardir, "ggac_cache")
 CARDS_DIR = os.path.join(TEMP_DIR, "cards")
-FONTS_DIR = os.path.join(CURRENT_DIR, "GGAC_Scraper", "fonts", "微软雅黑.ttf")
+FONTS_DIR = os.path.join(CURRENT_DIR, "GGAC_Scraper", "fonts", "ChillRoundM.ttf")
 SETTINGS_DIR = os.path.join(CACHE_DIR, "settings.json")
 
 # 转换设置文件中的中英文映射, 例如 2D原画->2d
