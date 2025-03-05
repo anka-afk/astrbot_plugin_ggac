@@ -46,7 +46,7 @@ class GGACPlugin(Star):
     @filter.on_astrbot_loaded()
     async def on_astrbot_loaded(self):
         if not hasattr(self, "client"):
-            self.client = self.context.get_platform("aiocqhttp")
+            self.client = self.context.get_platform("aiocqhttp").get_client()
         return
 
     async def send_updates(
