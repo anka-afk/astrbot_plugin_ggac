@@ -440,7 +440,15 @@ class CardGenerator:
 
         # 在标题下方添加类别信息 - 2D原画|插图格式，也居中显示
         category_y = title_y + self.font_sizes["title"] + 10
-        category_text = f"2D原画 | {work.media_category}"
+
+        # 获取类别的分割线|右边的文本
+        for category in work.categories:
+            if category.level == 2:
+                category_text = category.name
+        if not category_text:
+            category_text = work.categories[0].name
+
+        category_text = f"{work.media_category} | {category_text} "
 
         # 计算类别文本宽度用于居中
         category_width, _ = self._get_text_dimensions(category_text, self.fonts["info"])
