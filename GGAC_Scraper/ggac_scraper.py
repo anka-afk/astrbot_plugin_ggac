@@ -68,6 +68,7 @@ class WorkItem:
     cover_url: str
     media_category: str
     username: str
+    user_avatar: str
     categories: List[Category]
     view_count: int
     hot: int
@@ -93,6 +94,7 @@ class WorkItem:
             cover_url=data["originalCoverUrl"],
             media_category=media_category,
             username=data["userInfo"]["username"],
+            user_avatar=data["userInfo"]["avatarUrl"],
             categories=[
                 Category(
                     id=cat["id"], level=cat["level"], name=cat["name"], code=cat["code"]
