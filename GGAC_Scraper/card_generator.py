@@ -8,8 +8,8 @@ import aiohttp
 import math
 import random
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance, ImageOps
-from .ggac_scraper import WorkItem
-from ..config import FONTS_DIR
+from ggac_scraper import WorkItem
+from config import FONTS_DIR
 
 
 class CardGenerator:
@@ -23,6 +23,7 @@ class CardGenerator:
         max_card_width: int = 1500,  # 最大卡片宽度
         card_padding_ratio: float = 0.033,  # 边距与卡片宽度的比例
     ):
+        # ... existing code ...
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
 
@@ -88,8 +89,10 @@ class CardGenerator:
             "follow_btn": "#FFC107",
             "follow_text": "#333333",
             "fire_icon": "#e74c3c",
+            "heart_icon": "#e74c3c",  # 添加心形图标颜色
         }
 
+    # ... existing code ...
     def _calculate_font_sizes(self, card_width: int) -> dict:
         """根据卡片宽度计算字体大小"""
         # 基准宽度是900，其他宽度按比例缩放
@@ -250,10 +253,6 @@ class CardGenerator:
         self.font_sizes = self._calculate_font_sizes(self.card_width)
         self.fonts = self._load_fonts(self.font_sizes)
 
-        # 设置顶部区域高度 - 根据卡片宽度调整，但确保最小高度
-        header_height = int(self.card_width * 0.08)
-        header_height = max(header_height, 60)
-
         # 调整封面图高度
         # 根据原始图片的宽高比调整封面高度
         if original_width > 0 and original_height > 0:
@@ -274,6 +273,10 @@ class CardGenerator:
         # 对封面应用设计效果
         enhanced_cover = self._apply_design_effect_to_cover(cover_image, theme)
 
+        # 计算作者栏高度
+        author_section_height = int(self.card_width * 0.08)
+        author_section_height = max(author_section_height, 60)  # 确保最小高度
+
         # 预先计算所需的信息区域大小，避免底部空白
         # 计算文本所需的垂直空间
         text_height_title = self.font_sizes["title"] * 1.3
@@ -291,15 +294,15 @@ class CardGenerator:
         # 确保最小高度
         info_section_height = max(info_section_height, int(self.card_width * 0.15))
 
-        # 计算卡片总高度
-        card_height = header_height + cover_height + info_section_height
+        # 计算卡片总高度 - 现在作者栏在封面下方
+        card_height = cover_height + author_section_height + info_section_height
 
         # 创建卡片基础
         card = Image.new("RGBA", (self.card_width, card_height), self.colors["card_bg"])
 
-        # 创建顶部背景
-        header_bg = Image.new(
-            "RGBA", (self.card_width, header_height), self.colors["card_bg"]
+        # 创建作者栏背景
+        author_bg = Image.new(
+            "RGBA", (self.card_width, author_section_height), self.colors["card_bg"]
         )
 
         # 创建底部卡片背景
@@ -307,35 +310,35 @@ class CardGenerator:
             "RGBA", (self.card_width, info_section_height), self.colors["card_bg"]
         )
 
-        # 组合卡片
-        card.paste(header_bg, (0, 0))
-        card.paste(enhanced_cover, (0, header_height))
-        card.paste(info_bg, (0, header_height + cover_height))
+        # 组合卡片 - 现在是封面在顶部，作者栏在中间，信息区域在底部
+        card.paste(enhanced_cover, (0, 0))
+        card.paste(author_bg, (0, cover_height))
+        card.paste(info_bg, (0, cover_height + author_section_height))
 
         # 创建绘图对象
         draw = ImageDraw.Draw(card)
 
-        # 绘制顶部区域 - 用户头像和用户名
-        avatar_size = int(header_height * 0.7)  # 确保头像大小适应头部区域
-        avatar_x = self.padding
-        avatar_y = (header_height - avatar_size) // 2
-
-        # 绘制顶部分隔线
+        # 绘制作者区域分隔线
         draw.line(
-            [(0, header_height), (self.card_width, header_height)],
+            [(0, cover_height), (self.card_width, cover_height)],
             fill=self.colors["divider"],
             width=1,
         )
 
-        # 绘制底部分隔线
+        # 绘制信息区域分隔线
         draw.line(
             [
-                (0, header_height + cover_height),
-                (self.card_width, header_height + cover_height),
+                (0, cover_height + author_section_height),
+                (self.card_width, cover_height + author_section_height),
             ],
             fill=self.colors["divider"],
             width=1,
         )
+
+        # 绘制作者头像和用户名 - 现在在封面图下方
+        avatar_size = int(author_section_height * 0.7)  # 确保头像大小适应作者区域
+        avatar_x = self.padding
+        avatar_y = cover_height + (author_section_height - avatar_size) // 2
 
         if avatar_image:
             # 处理头像为圆形
@@ -356,7 +359,7 @@ class CardGenerator:
             fill=self.colors["text_primary"],
         )
 
-        # 绘制关注按钮
+        # 绘制关注按钮 - 现在在封面图下方
         follow_text = "求关注"
         follow_width, follow_height = self._get_text_dimensions(
             follow_text, self.fonts["follow"]
@@ -364,7 +367,7 @@ class CardGenerator:
         follow_btn_width = follow_width + self.padding
         follow_btn_height = int(self.font_sizes["follow"] * 1.8)
         follow_btn_x = self.card_width - self.padding - follow_btn_width
-        follow_btn_y = (header_height - follow_btn_height) // 2
+        follow_btn_y = cover_height + (author_section_height - follow_btn_height) // 2
 
         # 绘制黄色关注按钮
         draw.rounded_rectangle(
@@ -388,29 +391,17 @@ class CardGenerator:
 
         # 计算信息区域的具体位置 - 避免空白
         info_top_padding = self.padding // 2  # 减小顶部间距
-        info_y = header_height + cover_height + info_top_padding
+        info_y = cover_height + author_section_height + info_top_padding
 
-        # 绘制红色圆形图标
-        icon_size = int(self.font_sizes["info"] * 1.1)
-        fire_icon_x = self.padding
-        fire_icon_y = info_y + self.font_sizes["title"] // 3
-        draw.ellipse(
-            [
-                (fire_icon_x, fire_icon_y),
-                (fire_icon_x + icon_size, fire_icon_y + icon_size),
-            ],
-            fill=self.colors["fire_icon"],
-        )
+        # 不再绘制红色圆形图标
+        title_x = self.padding  # 标题直接从左边距开始，不再有圆形图标
 
-        # 绘制标题 - 左对齐，通过多次绘制模拟加粗效果
-        title_x = fire_icon_x + icon_size + self.padding // 2  # 在圆形图标右侧
-        self._draw_bold_text(
-            draw,
-            title_x,
-            info_y,
+        # 绘制标题 - 左对齐，不再使用加粗效果
+        draw.text(
+            (title_x, info_y),
             work.title,
-            self.fonts["title"],
-            self.colors["text_primary"],
+            font=self.fonts["title"],
+            fill=self.colors["text_primary"],
         )
 
         # 在标题下方添加类别信息
@@ -492,35 +483,45 @@ class CardGenerator:
             fill=self.colors["text_light"],
         )
 
-        # 绘制火焰/热度图标和点赞数
-        hot_icon_x = self.card_width - self.padding - stats_spacing // 2 - 10
+        # 绘制心形图标和点赞数 - 使用Unicode符号
+        # 设置心形图标的尺寸和位置
+        heart_size = int(self.font_sizes["caption"] * 1.2)
+        likes_text = str(work.hot)
+        likes_width, likes_height = self._get_text_dimensions(
+            likes_text, self.fonts["caption"]
+        )
 
-        # 确定火焰图标大小
-        flame_size = self.font_sizes["caption"]
-        flame_base = stats_y + flame_size * 0.3
+        # 先计算点赞数的位置
+        likes_x = int(self.card_width - self.padding - likes_width)
+        likes_y = int(stats_y)
 
-        # 绘制火焰图标 (简化图标)
-        flame_points = [
-            (hot_icon_x + flame_size // 2, flame_base),
-            (hot_icon_x + flame_size * 0.7, flame_base + flame_size * 0.3),
-            (hot_icon_x + flame_size, flame_base),
-            (hot_icon_x + flame_size * 0.85, flame_base + flame_size * 0.4),
-            (hot_icon_x + flame_size * 0.9, flame_base + flame_size * 0.8),
-            (hot_icon_x + flame_size // 2, flame_base + flame_size * 0.6),
-            (hot_icon_x + flame_size * 0.1, flame_base + flame_size * 0.8),
-            (hot_icon_x + flame_size * 0.15, flame_base + flame_size * 0.4),
-            (hot_icon_x, flame_base),
-            (hot_icon_x + flame_size * 0.3, flame_base + flame_size * 0.3),
-        ]
-        draw.polygon(flame_points, fill=self.colors["text_light"])
+        # 直接使用Unicode心形符号
+        heart_symbol = "♥"
+        heart_font = self.fonts["caption"].font_variant(size=int(heart_size * 1.2))
+
+        # 获取心形符号的尺寸
+        heart_width, heart_height = self._get_text_dimensions(heart_symbol, heart_font)
+
+        # 计算心形位置 - 确保与点赞数对齐
+        heart_x = int(likes_x - heart_width - 5)  # 5像素的间距
+        heart_y = int(likes_y - (heart_height - likes_height) // 2)  # 垂直居中对齐
+
+        # 直接绘制心形符号
+        heart_color = (
+            self.colors["heart_icon"] if "heart_icon" in self.colors else "#FF3B30"
+        )
+        draw.text((heart_x, heart_y), heart_symbol, font=heart_font, fill=heart_color)
 
         # 绘制点赞数
         draw.text(
-            (hot_icon_x + flame_size + 10, stats_y),
-            str(work.hot),
+            (likes_x, likes_y),
+            likes_text,
             font=self.fonts["caption"],
             fill=self.colors["text_light"],
         )
+
+        # 调试用 - 如果需要检查位置，可以取消注释此行
+        # draw.rectangle((heart_x, heart_y, heart_x + heart_width, heart_y + heart_height), outline="blue", width=1)
 
         # 添加圆角效果
         radius = int(self.card_width * 0.015)  # 圆角大小适应卡片宽度
