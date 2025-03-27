@@ -357,7 +357,7 @@ class CardGenerator:
         )
 
         # 绘制关注按钮
-        follow_text = "关注"
+        follow_text = "求关注"
         follow_width, follow_height = self._get_text_dimensions(
             follow_text, self.fonts["follow"]
         )
