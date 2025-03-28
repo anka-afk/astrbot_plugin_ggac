@@ -8,8 +8,8 @@ import aiohttp
 import math
 import random
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance, ImageOps
-from ..ggac_scraper import WorkItem
-from .config import FONTS_DIR
+from .ggac_scraper import WorkItem
+from ..config import FONTS_DIR
 
 
 class CardGenerator:
