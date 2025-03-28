@@ -8,8 +8,8 @@ import aiohttp
 import math
 import random
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance, ImageOps
-from .ggac_scraper import WorkItem
-from ..config import FONTS_DIR
+from ggac_scraper import WorkItem
+from config import FONTS_DIR
 
 
 class CardGenerator:
@@ -266,9 +266,25 @@ class CardGenerator:
             cover_height = int(self.card_width * 0.6)  # 默认比例
 
         # 调整封面图尺寸
-        cover_image = original_cover.resize(
-            (self.card_width, cover_height), Image.LANCZOS
+        cover_image = Image.new(
+            "RGBA", (self.card_width, cover_height), (255, 255, 255, 0)
         )
+        # 按比例调整图像大小，保持宽高比
+        scaled_cover = original_cover.copy()
+        scaled_width = self.card_width
+        scaled_height = int(original_height * (scaled_width / original_width))
+
+        # 如果调整后的高度超过了目标高度，则按高度调整
+        if scaled_height > cover_height:
+            scaled_height = cover_height
+            scaled_width = int(original_width * (scaled_height / original_height))
+
+        scaled_cover = scaled_cover.resize((scaled_width, scaled_height), Image.LANCZOS)
+
+        # 将缩放后的图像居中粘贴到空白背景上
+        paste_x = (self.card_width - scaled_width) // 2
+        paste_y = (cover_height - scaled_height) // 2
+        cover_image.paste(scaled_cover, (paste_x, paste_y))
 
         # 对封面应用设计效果
         enhanced_cover = self._apply_design_effect_to_cover(cover_image, theme)
