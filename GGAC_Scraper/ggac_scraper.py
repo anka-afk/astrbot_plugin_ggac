@@ -74,6 +74,7 @@ class WorkItem:
     hot: int
     create_time: datetime
     url: str
+    detail: Optional[dict] = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "WorkItem":
@@ -105,6 +106,7 @@ class WorkItem:
             hot=data.get("hot", 0),
             create_time=datetime.strptime(data["createTime"], "%Y-%m-%d %H:%M:%S"),
             url=f"https://www.ggac.com/work/detail/{work_id}",
+            detail=data.get("detail", None),
         )
 
 
@@ -180,6 +182,25 @@ class BaseScraper:
                         raise
                     await asyncio.sleep(self.retry_delay * (attempt + 1))
 
+    async def get_work_detail(self, url: str) -> dict:
+        # 根据作品的链接获取作品详情
+
+        async with aiohttp.ClientSession() as session:
+            for attempt in range(self.max_retries):
+                try:
+                    async with session.get(url, ssl=False) as response:
+                        if response.status == 200:
+                            raw_data = await response.json()
+                            data = raw_data.get("data")
+                            return data
+                    raise RequestError(
+                        f"HTTP {response.status}: {await response.text()}"
+                    )
+                except Exception as e:
+                    if attempt == self.max_retries - 1:
+                        raise
+                    await asyncio.sleep(self.retry_delay * (attempt + 1))
+
     async def fetch_data(self) -> dict:
         """获取数据"""
         url = self._build_url()
@@ -212,6 +233,14 @@ class BaseScraper:
         self.pageSize = size
         response = await self.fetch_data()
         data = self.parse_response(response)
+
+        # 获取作品详情, 加入进data
+        details = await asyncio.gather(
+            *(self.get_work_detail(item["url"]) for item in data)
+        )
+        for item, detail in zip(data, details):
+            item.update(detail)
+
         return [WorkItem.from_dict(item) for item in data]
 
 

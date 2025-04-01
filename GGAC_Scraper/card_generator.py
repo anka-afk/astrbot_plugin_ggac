@@ -23,7 +23,6 @@ class CardGenerator:
         max_card_width: int = 1500,  # 最大卡片宽度
         card_padding_ratio: float = 0.033,  # 边距与卡片宽度的比例
     ):
-        # ... existing code ...
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
 
@@ -225,13 +224,30 @@ class CardGenerator:
             )
             return default_img
 
-    async def generate_card(self, work: WorkItem) -> Tuple[str, str]:
+    async def generate_card(self, work: WorkItem, type: str = None) -> Tuple[str, str]:
         """生成单个作品卡片，具有现代设计感"""
         # 获取作品适合的主题色
         theme = self.themes.get(work.media_category, self.themes["default"])
 
         # 下载并处理封面图片
-        original_cover = await self._download_image(work.cover_url)
+        # 下载详情图片
+        if type == "detail":
+            mediaList = work.get("detail").get("medialList")
+            if mediaList[0].get("type") == 2:
+                url = mediaList[0].get("coverUrl")
+                original_cover = await self._download_image(url)
+            elif mediaList[0].get("type") == 1:
+                url = mediaList[0].get("url")
+                original_cover = await self._download_image(url)
+            else:
+                # 获得mediaList中第一个满足type为1或2的url
+                for media in mediaList:
+                    if media.get("type") in [1, 2]:
+                        url = media.get("url")
+                        original_cover = await self._download_image(url)
+                        break
+        else:
+            original_cover = await self._download_image(work.cover_url)
         if not original_cover:
             return None, None
 
@@ -563,9 +579,11 @@ class CardGenerator:
 
         return str(card_path), work_url
 
-    async def generate_cards(self, works: List[WorkItem]) -> List[Tuple[str, str]]:
+    async def generate_cards(
+        self, works: List[WorkItem], type: str = None
+    ) -> List[Tuple[str, str]]:
         """批量生成作品卡片"""
-        tasks = [self.generate_card(work) for work in works]
+        tasks = [self.generate_card(work, type) for work in works]
         return await asyncio.gather(*tasks)
 
 

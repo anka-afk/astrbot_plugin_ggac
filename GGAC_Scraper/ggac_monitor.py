@@ -66,12 +66,16 @@ class GGACMonitor:
                 print(f"新作品: {work.id} - {work.title}")
         return updates
 
-    async def _process_updates(self, updates: List[WorkItem]) -> List[Dict[str, str]]:
+    async def _process_updates(
+        self, updates: List[WorkItem], type: str = None
+    ) -> List[Dict[str, str]]:
         """处理更新的作品，生成卡片"""
         results = []
         for work in updates:
             try:
-                card_path, work_url = await self.card_generator.generate_card(work)
+                card_path, work_url = await self.card_generator.generate_card(
+                    work, type
+                )
                 results.append(
                     {
                         "image_path": str(Path(card_path).absolute()),

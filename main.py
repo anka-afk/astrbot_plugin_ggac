@@ -21,7 +21,7 @@ class GGACPlugin(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
         self.config = config
-
+        self.client = self.context.get_platform("aiocqhttp").get_client()
         # 加载推送设置
         settings = load_settings()
 
@@ -42,12 +42,6 @@ class GGACPlugin(Star):
 
         self.monitor = GGACMonitor(cache_dir=CACHE_DIR, cards_dir=CARDS_DIR)
         asyncio.create_task(self.monitoring_task())
-
-    @filter.on_astrbot_loaded()
-    async def on_astrbot_loaded(self):
-        if not hasattr(self, "client"):
-            self.client = self.context.get_platform("aiocqhttp").get_client()
-        return
 
     async def send_updates(
         self, group_id: str, updates: Dict[str, List[Dict[str, str]]]
@@ -240,7 +234,9 @@ class GGACPlugin(Star):
 
             work = random.choice(works)
 
-            card_path, work_url = await self.monitor.card_generator.generate_card(work)
+            card_path, work_url = await self.monitor.card_generator.generate_card(
+                work, self.config.get("cover_type", "default")
+            )
 
             message = [
                 {

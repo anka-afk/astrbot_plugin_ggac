@@ -10,5 +10,12 @@
     "type": "int",
     "hint": "多久检查一次更新，建议300-600秒",
     "default": 300
+  },
+  "cover_type": {
+    "description": "封面类型",
+    "type": "string",
+    "hint": "封面类型, 可选: 'detail'(详情), 'default'(默认",
+    "default": "default",
+    "options": ["detail", "default"]
   }
 }
