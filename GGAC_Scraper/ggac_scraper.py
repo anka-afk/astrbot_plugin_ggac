@@ -89,6 +89,11 @@ class WorkItem:
                 f"Warning: Missing mediaCategory for work {work_id}, using default value"
             )
 
+        # 确保detail永远不会是None
+        detail = data.get("detail", {})
+        if detail is None:
+            detail = {}
+
         return cls(
             id=work_id,
             title=data["title"],
@@ -106,7 +111,7 @@ class WorkItem:
             hot=data.get("hot", 0),
             create_time=datetime.strptime(data["createTime"], "%Y-%m-%d %H:%M:%S"),
             url=f"https://www.ggac.com/work/detail/{work_id}",
-            detail=data.get("detail", None),
+            detail=detail,
         )
 
 
@@ -184,6 +189,7 @@ class BaseScraper:
 
     async def get_work_detail(self, url: str) -> dict:
         # 根据作品的链接获取作品详情
+        print(f"[DEBUG] Requesting work detail: {url}")
 
         async with aiohttp.ClientSession() as session:
             for attempt in range(self.max_retries):
@@ -192,13 +198,22 @@ class BaseScraper:
                         if response.status == 200:
                             raw_data = await response.json()
                             data = raw_data.get("data")
+                            if data is None:
+                                print(
+                                    f"[WARNING] No data in response for {url}: {raw_data}"
+                                )
+                                return {}  # 返回空字典而非None
                             return data
                     raise RequestError(
                         f"HTTP {response.status}: {await response.text()}"
                     )
                 except Exception as e:
+                    print(
+                        f"[WARNING] Failed to get work detail (attempt {attempt+1}): {e}"
+                    )
                     if attempt == self.max_retries - 1:
-                        raise
+                        print(f"[ERROR] All attempts failed for {url}")
+                        return {}  # 所有尝试失败时返回空字典
                     await asyncio.sleep(self.retry_delay * (attempt + 1))
 
     async def fetch_data(self) -> dict:
@@ -234,12 +249,18 @@ class BaseScraper:
         response = await self.fetch_data()
         data = self.parse_response(response)
 
+        # 为每个作品构建详情URL
+        for item in data:
+            item["url"] = f"https://m.ggac.com/api/work/detail/{item['id']}"
+
         # 获取作品详情, 加入进data
         details = await asyncio.gather(
             *(self.get_work_detail(item["url"]) for item in data)
         )
         for item, detail in zip(data, details):
-            item.update(detail)
+            item["detail"] = detail or {}  # 确保detail是字典而不是None
+            if detail:  # 确保detail不是None或空字典
+                item.update(detail)
 
         return [WorkItem.from_dict(item) for item in data]
 

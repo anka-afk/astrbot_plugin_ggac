@@ -231,23 +231,32 @@ class CardGenerator:
 
         # 下载并处理封面图片
         # 下载详情图片
-        if type == "detail":
-            mediaList = work.get("detail").get("medialList")
-            if mediaList[0].get("type") == 2:
-                url = mediaList[0].get("coverUrl")
-                original_cover = await self._download_image(url)
-            elif mediaList[0].get("type") == 1:
-                url = mediaList[0].get("url")
-                original_cover = await self._download_image(url)
-            else:
-                # 获得mediaList中第一个满足type为1或2的url
-                for media in mediaList:
-                    if media.get("type") in [1, 2]:
-                        url = media.get("url")
-                        original_cover = await self._download_image(url)
-                        break
+        if type == "detail" and work.detail is not None:
+            mediaList = work.detail.get("mediaList")
+
+            # 添加空值检查
+            if mediaList and len(mediaList) > 0:
+                if mediaList[0].get("type") == 2:
+                    url = mediaList[0].get("coverUrl")
+                    original_cover = await self._download_image(url)
+                elif mediaList[0].get("type") == 1:
+                    url = mediaList[0].get("url")
+                    original_cover = await self._download_image(url)
+                else:
+                    # 获得mediaList中第一个满足type为1或2的url
+                    for media in mediaList:
+                        if media.get("type") in [1, 2]:
+                            url = media.get("url") or media.get("coverUrl")
+                            if url:
+                                original_cover = await self._download_image(url)
+                                break
+                    else:  # 如果没有找到合适的媒体项
+                        original_cover = await self._download_image(work.cover_url)
+            else:  # 如果mediaList为空或不存在
+                original_cover = await self._download_image(work.cover_url)
         else:
             original_cover = await self._download_image(work.cover_url)
+
         if not original_cover:
             return None, None
 
