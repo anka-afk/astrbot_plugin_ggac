@@ -21,7 +21,7 @@ class GGACPlugin(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
         self.config = config
-        self.client = self.context.get_platform("aiocqhttp").get_client()
+        self.client = context.get_platform("aiocqhttp").get_client()
         # 加载推送设置
         settings = load_settings()
 
