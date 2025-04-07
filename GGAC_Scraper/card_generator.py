@@ -485,7 +485,7 @@ class CardGenerator:
         )
 
         # 计算视图图标的位置和浏览量
-        stats_spacing = int(self.card_width * 0.15)
+        stats_spacing = int(self.card_width * 0.25)
         eye_icon_x = self.card_width - self.padding - stats_spacing - 10
 
         # 绘制眼睛图标 (使用椭圆绘制)
