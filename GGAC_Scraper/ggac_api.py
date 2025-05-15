@@ -15,6 +15,27 @@ class GGACAPI:
     def __init__(self):
         self._scraper = GGACScraper()
 
+    async def login(
+        self,
+        username: str,
+        password: str,
+    ) -> bool:
+        """
+        登录GGAC
+
+        参数:
+            username: 用户名
+            password: 密码
+
+        返回:
+            bool: 登录是否成功
+        """
+        return await self._scraper.login(username, password)
+
+    def login_sync(self, *args, **kwargs) -> bool:
+        """同步方式登录GGAC"""
+        return self._scraper.login_sync(*args, **kwargs)
+
     async def get_works(
         self,
         category: str = "featured",

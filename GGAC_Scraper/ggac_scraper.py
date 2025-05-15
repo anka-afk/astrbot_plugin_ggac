@@ -1,5 +1,5 @@
 from typing import Optional, List
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 import aiohttp
 import asyncio
@@ -162,15 +162,112 @@ class BaseScraper:
     base_url: str = "https://www.ggac.com/api"
     max_retries: int = 3
     retry_delay: float = 1.0
+    cookies: Optional[dict] = None
+    token: Optional[str] = None
+    username: Optional[str] = None
+    password: Optional[str] = None
+    headers: Optional[dict] = field(
+        default_factory=lambda: {
+            "User-Agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Mobile Safari/537.36 Edg/136.0.0.0",
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+            "authtype": "1",
+            "platform": "2",
+            "sec-ch-ua": '"Chromium";v="136", "Microsoft Edge";v="136", "Not.A/Brand";v="99"',
+            "sec-ch-ua-mobile": "?1",
+            "sec-ch-ua-platform": '"Android"',
+            "Origin": "https://www.ggac.com",
+            "Referer": "https://www.ggac.com/",
+        }
+    )
+
+    async def ensure_token(self) -> bool:
+        """确保token有效，如果无效或不存在则尝试登录"""
+        # 如果没有保存凭据，无法自动登录
+        if not self.username or not self.password:
+            print("[WARNING] No credentials stored for auto-login")
+            return False
+
+        # 如果没有token，尝试登录
+        if not self.token:
+            print("[INFO] No token found, attempting auto-login")
+            return await self.login(self.username, self.password)
+
+        return True
+
+    async def login(self, username: str, password: str) -> bool:
+        """登录GGAC网站获取认证信息"""
+        # 保存凭据以备后续使用
+        self.username = username
+        self.password = password
+        login_url = "https://www.ggac.com/api/user/password_login"
+        login_data = {"account": username, "password": password}
+
+        # 登录专用的headers
+        login_headers = {
+            "User-Agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Mobile Safari/537.36 Edg/136.0.0.0",
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+            "Content-Type": "application/json",
+            "Origin": "https://www.ggac.com",
+            "Referer": "https://www.ggac.com/auth/login?redirect=https://www.ggac.com/user-center/home/work/list",
+            "authtype": "1",
+            "platform": "1",
+            "sec-ch-ua": '"Chromium";v="136", "Microsoft Edge";v="136", "Not.A/Brand";v="99"',
+            "sec-ch-ua-mobile": "?1",
+            "sec-ch-ua-platform": '"Android"',
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-origin",
+        }
+
+        print(f"[DEBUG] 尝试登录: {username}")
+
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.post(
+                    login_url, json=login_data, ssl=False, headers=login_headers
+                ) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        print(f"[DEBUG] 登录响应: {data}")
+
+                        if data.get("code") == "0":
+                            # 保存cookies
+                            self.cookies = {
+                                cookie.key: cookie.value
+                                for cookie in session.cookie_jar
+                            }
+
+                            # 保存认证令牌
+                            self.token = data.get("data")
+
+                            print(f"[DEBUG] 登录成功，获取到 cookies: {self.cookies}")
+                            print(f"[DEBUG] 登录成功，获取到 token: {self.token}")
+                            return True
+                    print(f"[ERROR] 登录失败: {await response.text()}")
+                    return False
+            except Exception as e:
+                print(f"[ERROR] 登录异常: {e}")
+                return False
 
     async def fetch_with_retry(self, url: str) -> dict:
         """带重试的请求方法"""
         print(f"\n[DEBUG] Requesting URL: {url}")
+        await self.ensure_token()
 
-        async with aiohttp.ClientSession() as session:
+        # 更新请求头，添加认证令牌
+        request_headers = self.headers.copy() if self.headers else {}
+        if self.token:
+            request_headers["authorization"] = self.token
+            request_headers["token"] = self.token
+
+        async with aiohttp.ClientSession(cookies=self.cookies) as session:
             for attempt in range(self.max_retries):
                 try:
-                    async with session.get(url, ssl=False) as response:
+                    async with session.get(
+                        url, ssl=False, headers=request_headers
+                    ) as response:
                         if response.status == 200:
                             data = await response.json()
                             print(f"[DEBUG] Response status: {response.status}")
@@ -190,13 +287,41 @@ class BaseScraper:
     async def get_work_detail(self, url: str) -> dict:
         # 根据作品的链接获取作品详情
         print(f"[DEBUG] Requesting work detail: {url}")
+        await self.ensure_token()
 
-        async with aiohttp.ClientSession() as session:
+        # 确保引用了正确的域名
+        if "m.ggac.com" not in url:
+            url = url.replace("www.ggac.com", "m.ggac.com")
+
+        # 为每个详情请求设置特定的Referer
+        work_id = url.split("/")[-1]
+        detail_headers = self.headers.copy() if self.headers else {}
+        detail_headers["Referer"] = f"https://m.ggac.com/work/detail/{work_id}"
+
+        # 添加认证令牌
+        if self.token:
+            detail_headers["authorization"] = self.token
+            detail_headers["token"] = self.token
+        else:
+            print("[WARNING] No token found, detail requests may fail")
+
+        async with aiohttp.ClientSession(cookies=self.cookies) as session:
             for attempt in range(self.max_retries):
                 try:
-                    async with session.get(url, ssl=False) as response:
+                    async with session.get(
+                        url, ssl=False, headers=detail_headers
+                    ) as response:
                         if response.status == 200:
                             raw_data = await response.json()
+                            # 检查是否需要登录
+                            if raw_data.get("code") == "430" and "登录" in raw_data.get(
+                                "message", ""
+                            ):
+                                print(
+                                    f"[WARNING] 需要登录才能访问: {raw_data.get('message')}"
+                                )
+                                return {"error": "need_login"}
+
                             data = raw_data.get("data")
                             if data is None:
                                 print(
@@ -249,7 +374,7 @@ class BaseScraper:
         response = await self.fetch_data()
         data = self.parse_response(response)
 
-        # 为每个作品构建详情URL
+        # 为每个作品构建详情URL，使用m.ggac.com域名
         for item in data:
             item["url"] = f"https://m.ggac.com/api/work/detail/{item['id']}"
 
@@ -260,7 +385,11 @@ class BaseScraper:
         for item, detail in zip(data, details):
             item["detail"] = detail or {}  # 确保detail是字典而不是None
             if detail:  # 确保detail不是None或空字典
-                item.update(detail)
+                # 检查是否需要登录
+                if isinstance(detail, dict) and detail.get("error") == "need_login":
+                    print(f"[ERROR] 无法获取作品 {item['id']} 的详情，需要登录")
+                else:
+                    item.update(detail)
 
         return [WorkItem.from_dict(item) for item in data]
 
@@ -366,6 +495,38 @@ class GGACScraper:
         self.all = CategoryScraper(CategoryType.ALL)
         self.article = ArticleScraper()
 
+    async def login(self, username: str, password: str) -> bool:
+        """登录GGAC网站"""
+        base_scraper = BaseScraper()
+        success = await base_scraper.login(username, password)
+        if success:
+            # 更新所有scrapers的cookies和token
+            cookies = base_scraper.cookies
+            token = base_scraper.token
+            for scraper_name in [
+                "featured",
+                "game",
+                "anime",
+                "movie",
+                "art",
+                "comic",
+                "other",
+                "all",
+                "article",
+            ]:
+                scraper = getattr(self, scraper_name)
+                scraper.cookies = cookies
+                scraper.token = token
+                scraper.username = username
+                scraper.password = password
+                print(f"[DEBUG] 更新 {scraper_name} 爬虫的token为: {token}")
+            print("[DEBUG] 已更新所有爬虫的cookies和token")
+        return success
+
+    def login_sync(self, username: str, password: str) -> bool:
+        """同步方式登录GGAC网站"""
+        return asyncio.run(self.login(username, password))
+
     async def get_works_by_category(
         self,
         category: CategoryType,
@@ -375,13 +536,28 @@ class GGACScraper:
         media_category: Optional[MediaCategory] = None,
     ) -> List[WorkItem]:
         """根据分类获取作品"""
-        scraper = CategoryScraper(
-            category=category,
-            page_number=page,
-            page_size=size,
-            sort_field=sort_field,
-            media_category=media_category,
-        )
+        # 选择合适的已存在爬虫实例
+        if category == CategoryType.GAME:
+            scraper = self.game
+        elif category == CategoryType.ANIME:
+            scraper = self.anime
+        elif category == CategoryType.MOVIE:
+            scraper = self.movie
+        elif category == CategoryType.ART:
+            scraper = self.art
+        elif category == CategoryType.COMIC:
+            scraper = self.comic
+        elif category == CategoryType.ANOTHER:
+            scraper = self.other
+        else:  # ALL
+            scraper = self.all
+
+        # 更新爬虫参数
+        scraper.pageNumber = page
+        scraper.pageSize = size
+        scraper.sort_field = sort_field
+        scraper.media_category = media_category
+
         return await scraper.get_works()
 
     async def get_featured_works(
@@ -392,13 +568,13 @@ class GGACScraper:
         media_category: Optional[MediaCategory] = None,
     ) -> List[WorkItem]:
         """获取精选作品"""
-        scraper = FeaturedScraper(
-            page_number=page,
-            page_size=size,
-            sort_field=sort_field,
-            media_category=media_category,
-        )
-        return await scraper.get_works()
+        # 使用已有的featured爬虫实例
+        self.featured.pageNumber = page
+        self.featured.pageSize = size
+        self.featured.sort_field = sort_field
+        self.featured.media_category = media_category
+
+        return await self.featured.get_works()
 
     async def get_articles(
         self,
@@ -407,12 +583,12 @@ class GGACScraper:
         sort_field: SortField = SortField.RECOMMENDED,
     ) -> List[ArticleItem]:
         """获取文章列表"""
-        scraper = ArticleScraper(
-            page_number=page,
-            page_size=size,
-            sort_field=sort_field,
-        )
-        return await scraper.get_articles()
+        # 使用已有的article爬虫实例
+        self.article.pageNumber = page
+        self.article.pageSize = size
+        self.article.sort_field = sort_field
+
+        return await self.article.get_articles()
 
     def get_articles_sync(self, *args, **kwargs) -> List[ArticleItem]:
         """同步方式获取文章列表"""

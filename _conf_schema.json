@@ -17,5 +17,17 @@
     "hint": "封面类型, 可选: 'detail'(详情), 'default'(默认",
     "default": "default",
     "options": ["detail", "default"]
+  },
+  "account": {
+    "description": "GGAC账号",
+    "type": "string",
+    "hint": "填写你的GGAC账号, 用于获取更新信息",
+    "default": ""
+  },
+  "password": {
+    "description": "GGAC密码",
+    "type": "string",
+    "hint": "填写你的GGAC密码, 用于获取更新信息",
+    "default": ""
   }
 }

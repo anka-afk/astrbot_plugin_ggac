@@ -40,6 +40,9 @@ class GGACPlugin(Star):
             }
 
         self.monitor = GGACMonitor(cache_dir=CACHE_DIR, cards_dir=CARDS_DIR)
+        self.monitor.api.login_sync(
+            self.config.get("account"), self.config.get("password")
+        )
         asyncio.create_task(self.monitoring_task())
 
     @filter.on_astrbot_loaded()
