@@ -17,6 +17,34 @@ class GGACMonitor:
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(exist_ok=True)
 
+    def set_credentials(self, username: str, password: str) -> None:
+        """设置登录凭据，供后续自动登录使用"""
+        if not username or not password:
+            print("[WARNING] 未提供有效的登录凭据")
+            return
+
+        # 为所有爬虫设置凭据
+        self.api._scraper.username = username
+        self.api._scraper.password = password
+
+        # 传递凭据给所有子爬虫
+        for scraper_name in [
+            "featured",
+            "game",
+            "anime",
+            "movie",
+            "art",
+            "comic",
+            "other",
+            "all",
+            "article",
+        ]:
+            scraper = getattr(self.api._scraper, scraper_name)
+            scraper.username = username
+            scraper.password = password
+
+        print(f"[INFO] 已为 GGAC 爬虫设置登录凭据: {username}")
+
     def _load_cache(self, cache_file: Path) -> List[Dict]:
         """加载缓存文件"""
         if not cache_file.exists():

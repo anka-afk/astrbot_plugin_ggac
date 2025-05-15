@@ -6,6 +6,7 @@ from astrbot.api.all import *
 from astrbot.core.message.message_event_result import MessageChain
 from astrbot.api.message_components import Plain, Image
 from astrbot.api.event.filter import EventMessageType
+from astrbot.api import logger
 from typing import List, Dict
 from .GGAC_Scraper.ggac_monitor import GGACMonitor
 from .config import CACHE_DIR, CARDS_DIR, CATEGORY_MAP, load_settings
@@ -40,7 +41,7 @@ class GGACPlugin(Star):
             }
 
         self.monitor = GGACMonitor(cache_dir=CACHE_DIR, cards_dir=CARDS_DIR)
-        self.monitor.api.login_sync(
+        self.monitor.set_credentials(
             self.config.get("account"), self.config.get("password")
         )
         asyncio.create_task(self.monitoring_task())
@@ -64,7 +65,7 @@ class GGACPlugin(Star):
                 if not all_items:
                     return
 
-                print(f"向群 {group_id} 推送 {len(all_items)} 个更新")
+                logger.info(f"向群 {group_id} 推送 {len(all_items)} 个更新")
 
                 for item in all_items:
                     try:
@@ -83,15 +84,17 @@ class GGACPlugin(Star):
                         await self.client.api.call_action("send_group_msg", **payloads)
                         await asyncio.sleep(1)
                     except Exception as e:
-                        print(f"推送作品时出错: {e}")
+                        logger.error(f"推送作品时出错: {e}")
                         traceback.print_exc()
                         continue
 
             except Exception as e:
-                print(f"向群组 {group_id} 推送消息时出错: {e}")
+                logger.error(f"向群组 {group_id} 推送消息时出错: {e}")
                 traceback.print_exc()
         else:
-            print("==注意==: 重启后需要发送一条消息获取client, 等待client获取中...")
+            logger.error(
+                "==注意==: 重启后需要发送一条消息获取client, 等待client获取中..."
+            )
             while not hasattr(self, "client"):
                 await asyncio.sleep(10)
             await self.send_updates(group_id, updates)
@@ -106,17 +109,17 @@ class GGACPlugin(Star):
                 if any(updates.values()):
                     target_groups = self.config.get("target_groups", [])
                     if not target_groups:
-                        print("未配置目标群组")
+                        logger.error("未配置目标群组")
                         continue
 
-                    print(f"检测到更新，准备向 {len(target_groups)} 个群组推送")
+                    logger.info(f"检测到更新，准备向 {len(target_groups)} 个群组推送")
 
                     for group_id in target_groups:
                         await self.send_updates(group_id, updates)
 
                 await asyncio.sleep(interval)
             except Exception as e:
-                print(f"监控任务出错: {e}")
+                logger.error(f"监控任务出错: {e}")
                 await asyncio.sleep(60)
 
     @filter.command("ggac_status")
@@ -261,7 +264,7 @@ class GGACPlugin(Star):
             await self.client.api.call_action("send_group_msg", **payloads)
 
         except Exception as e:
-            print(f"获取随机作品时出错: {e}")
+            logger.error(f"获取随机作品时出错: {e}")
             traceback.print_exc()
             yield event.plain_result(f"获取作品失败: {str(e)}")
         finally:
