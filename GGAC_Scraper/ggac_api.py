@@ -42,7 +42,7 @@ class GGACAPI:
         media_type: str = "2d",
         sort_by: str = "recommended",
         page: int = 1,
-        size: int = 48,
+        size: int = 24,
     ) -> List[WorkItem]:
         """
         获取作品列表

@@ -232,7 +232,6 @@ class GGACPlugin(Star):
                 media_type=standard_media_type,
                 sort_by="latest",
                 page=1,
-                size=48,
             )
 
             if not works:
